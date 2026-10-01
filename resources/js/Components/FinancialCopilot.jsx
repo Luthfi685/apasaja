@@ -8,10 +8,10 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 
 const QUICK_PROMPTS = [
-    '💡 Apa itu reksadana & cara mulainya?',
-    '📊 Ringkasan kondisi finansial saya',
-    '🎯 Tips mengatur gaji agar bisa nabung',
-    '🔄 Pindahin uang cash ke rekening',
+    'Apa itu reksadana & cara mulainya?',
+    'Ringkasan kondisi finansial saya',
+    'Tips mengatur gaji agar bisa nabung',
+    '[DEMO] Pindahin uang cash ke rekening',
 ];
 
 // Detect questions, advice, general chat vs transaction recording
@@ -243,6 +243,7 @@ export default function FinancialCopilot({ isOpen, onClose }) {
             const saved = localStorage.getItem(STORAGE_KEY);
             return saved ? JSON.parse(saved) : [INITIAL_MESSAGE];
         } catch (e) {
+            console.error('Failed to load chat history:', e);
             return [INITIAL_MESSAGE];
         }
     });
@@ -257,7 +258,9 @@ export default function FinancialCopilot({ isOpen, onClose }) {
     useEffect(() => {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-        } catch (e) {}
+        } catch (e) {
+            console.error('Failed to save chat history:', e);
+        }
     }, [messages]);
 
     useEffect(() => {
@@ -297,7 +300,9 @@ export default function FinancialCopilot({ isOpen, onClose }) {
                 if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
                 silenceTimeoutRef.current = setTimeout(() => {
                     if (recognitionRef.current) {
-                        try { recognitionRef.current.stop(); } catch (e) {}
+                        try { recognitionRef.current.stop(); } catch (e) {
+                            console.error('Failed to stop speech recognition:', e);
+                        }
                     }
                     setIsListening(false);
                 }, 2500);
@@ -323,7 +328,9 @@ export default function FinancialCopilot({ isOpen, onClose }) {
         return () => {
             if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
             if (recognitionRef.current) {
-                try { recognitionRef.current.stop(); } catch (e) {}
+                try { recognitionRef.current.stop(); } catch (e) {
+                    console.error('Failed to stop speech recognition on cleanup:', e);
+                }
             }
         };
     }, []);
@@ -342,10 +349,14 @@ export default function FinancialCopilot({ isOpen, onClose }) {
             try {
                 recognitionRef.current.start();
             } catch (err) {
+                console.error('Failed to start speech recognition, retrying...', err);
                 try {
                     recognitionRef.current.stop();
                     setTimeout(() => recognitionRef.current.start(), 200);
-                } catch (e) {}
+                } catch (e) {
+                    console.error('Failed to retry speech recognition:', e);
+                    toast.error('Gagal memulai speech recognition. Coba lagi.');
+                }
             }
         }
     }
@@ -390,14 +401,15 @@ export default function FinancialCopilot({ isOpen, onClose }) {
                 toast.success(res.data.message, { id: toastId, duration: 6000 });
                 setMessages(prev => [...prev, {
                     role: 'assistant',
-                    content: `🎉 **Pemulihan Berhasil!**\n\n${res.data.message}\n\nSaldo dompet dan grafik di dashboard telah diperbarui secara otomatis.`,
-                    tag: '🔄 Pemulihan Berhasil',
+                    content: `[SUKSES] **Pemulihan Berhasil!**\n\n${res.data.message}\n\nSaldo dompet dan grafik di dashboard telah diperbarui secara otomatis.`,
+                    tag: '[PEMULIHAN] Pemulihan Berhasil',
                 }]);
                 router.reload({ preserveScroll: true });
             } else {
                 toast.error(res.data.message || 'Gagal memulihkan transaksi.', { id: toastId });
             }
         } catch (err) {
+            console.error('Failed to restore transactions:', err);
             toast.error('Terjadi kendala saat memulihkan transaksi ke database.', { id: toastId });
         } finally {
             setLoading(false);
@@ -441,7 +453,7 @@ export default function FinancialCopilot({ isOpen, onClose }) {
                     setMessages(prev => [...prev, {
                         role: 'assistant',
                         content: reply.message,
-                        tag: '🔄 Transfer Saldo Berhasil',
+                        tag: '[TRANSFER] Transfer Saldo Berhasil',
                     }]);
                     toast.success('Transfer saldo antar dompet berhasil!');
                     router.reload({ preserveScroll: true });

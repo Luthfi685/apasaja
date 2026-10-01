@@ -20,25 +20,27 @@ class DashboardController extends Controller
         $prevMonth    = $now->copy()->subMonth()->month;
         $prevYear     = $now->copy()->subMonth()->year;
 
-        // ─── Key Metrics ─────────────────────────────────────────────────────
+        // ─── Key Metrics & Cash Flow (single-query optimization) ──────────────
 
         $totalBalance = (float) $user->wallets()->sum('balance');
 
-        $currentIncome  = $user->getMonthlyIncome($currentMonth, $currentYear);
-        $currentExpense = $user->getMonthlyExpense($currentMonth, $currentYear);
-        $prevIncome     = $user->getMonthlyIncome($prevMonth, $prevYear);
-        $prevExpense    = $user->getMonthlyExpense($prevMonth, $prevYear);
+        $sixMonthsStart = $now->copy()->subMonths(5)->startOfMonth()->toDateString();
+        $sixMonthsTransactions = $user->transactions()
+            ->whereDate('date', '>=', $sixMonthsStart)
+            ->get(['date', 'type', 'amount']);
 
-        $netCashFlow = $currentIncome - $currentExpense;
+        $cashFlowData = collect(range(5, 0))->map(function ($monthsAgo) use ($sixMonthsTransactions, $now) {
+            $date   = $now->copy()->subMonths($monthsAgo);
+            $year   = (int) $date->year;
+            $month  = (int) $date->month;
 
-        // ─── Cash Flow Chart (last 6 months) ─────────────────────────────────
+            $monthTxs = $sixMonthsTransactions->filter(function ($tx) use ($year, $month) {
+                $d = Carbon::parse($tx->date);
+                return (int) $d->year === $year && (int) $d->month === $month;
+            });
 
-        $cashFlowData = collect(range(5, 0))->map(function ($monthsAgo) use ($user, $now) {
-            $date    = $now->copy()->subMonths($monthsAgo);
-            $month   = $date->month;
-            $year    = $date->year;
-            $income  = $user->getMonthlyIncome($month, $year);
-            $expense = $user->getMonthlyExpense($month, $year);
+            $income  = (float) $monthTxs->where('type', 'income')->sum('amount');
+            $expense = (float) $monthTxs->where('type', 'expense')->sum('amount');
 
             return [
                 'month'   => $date->translatedFormat('M Y'),
@@ -47,6 +49,16 @@ class DashboardController extends Controller
                 'net'     => $income - $expense,
             ];
         });
+
+        $currentMonthData = $cashFlowData->last() ?? ['income' => 0, 'expense' => 0];
+        $currentIncome  = $currentMonthData['income'];
+        $currentExpense = $currentMonthData['expense'];
+
+        $prevMonthData  = $cashFlowData->count() >= 2 ? $cashFlowData->slice(-2, 1)->first() : null;
+        $prevIncome     = $prevMonthData ? $prevMonthData['income'] : 0;
+        $prevExpense    = $prevMonthData ? $prevMonthData['expense'] : 0;
+
+        $netCashFlow = $currentIncome - $currentExpense;
 
         // ─── Category Expense Breakdown ───────────────────────────────────────
 
@@ -108,7 +120,7 @@ class DashboardController extends Controller
             'target_amount'  => (float) $g->target_amount,
             'current_amount' => (float) $g->current_amount,
             'percentage'     => $g->percentage,
-            'icon'           => $g->icon ?? '🎯',
+            'icon'           => $g->icon ?? 'Target',
             'color'          => $g->color ?? '#2563EB',
         ]);
 
@@ -206,7 +218,7 @@ class DashboardController extends Controller
 
     private function percentageChange(float $old, float $new): float
     {
-        if ($old == 0) return $new > 0 ? 100 : 0;
+        if ($old === 0.0 || $old === 0) return $new > 0 ? 100 : 0;
         return round((($new - $old) / $old) * 100, 1);
     }
 }

@@ -85,7 +85,53 @@ Route::match(['get', 'post'], '/api/webhook/whatsapp', [\App\Http\Controllers\Wh
 Route::match(['get', 'post'], '/webhook/whatsapp', [\App\Http\Controllers\WhatsAppWebhookController::class, 'handle'])
     ->name('webhook.whatsapp.alt');
 
-// Public Diagnostics API
-Route::match(['get', 'post'], '/api/system/audit', [\App\Http\Controllers\DataRecoveryController::class, 'audit']);
-Route::match(['get', 'post'], '/api/system/fix-all', [\App\Http\Controllers\DataRecoveryController::class, 'fixAll']);
-Route::match(['get', 'post'], '/api/system/clean-wallets', [\App\Http\Controllers\DataRecoveryController::class, 'cleanupEmptyWallets']);
+// ─── Diagnostics & Recovery API (Protected in production) ─────────────────────
+Route::group(['middleware' => function ($request, $next) {
+    if (app()->environment('production')) {
+        $secret = config('app.key');
+        if (!$secret || $request->query('key') !== $secret) {
+            abort(403, 'Unauthorized maintenance request.');
+        }
+    }
+    return $next($request);
+}], function () {
+    Route::match(['get', 'post'], '/api/system/audit', [\App\Http\Controllers\DataRecoveryController::class, 'audit']);
+    Route::match(['get', 'post'], '/api/system/fix-all', [\App\Http\Controllers\DataRecoveryController::class, 'fixAll']);
+    Route::match(['get', 'post'], '/api/system/clean-wallets', [\App\Http\Controllers\DataRecoveryController::class, 'cleanupEmptyWallets']);
+});
+
+// ─── Shared Hosting / InfinityFree Deploy Helper (Protected by APP_KEY) ───────
+Route::get('/deploy-helper', function (\Illuminate\Http\Request $request) {
+    $secret = config('app.key');
+    if (!$secret || $request->query('key') !== $secret) {
+        abort(403, 'Unauthorized. Pass ?key= matching APP_KEY.');
+    }
+
+    $action = $request->query('action', 'status');
+    $output = [];
+
+    switch ($action) {
+        case 'migrate':
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+            break;
+        case 'storage-link':
+            \Illuminate\Support\Facades\Artisan::call('storage:link');
+            $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+            break;
+        case 'clear-cache':
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+            $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+            break;
+        case 'status':
+        default:
+            $output[] = 'Deploy helper active. Actions: ?action=migrate, ?action=storage-link, ?action=clear-cache';
+            break;
+    }
+
+    return response()->json([
+        'status'  => true,
+        'action'  => $action,
+        'output'  => $output,
+    ]);
+});

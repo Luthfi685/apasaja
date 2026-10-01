@@ -44,7 +44,7 @@ class GoalController extends Controller
                     'days_remaining_by_daily'   => $daysLeft,
                     'months_remaining_by_daily' => $monthsLeft,
                     'estimated_completion_date' => $g->estimated_completion_date,
-                    'icon'                      => $g->icon ?? '🎯',
+                    'icon'                      => $g->icon ?? 'Target',
                     'color'                     => $g->color ?? '#2563EB',
                     'is_completed'              => $g->is_completed,
                     'status'                    => $g->status,
@@ -105,6 +105,11 @@ class GoalController extends Controller
 
         if (!$isPhysical) {
             $wallet = $user->wallets()->findOrFail($validated['wallet_id']);
+            
+            if (!$wallet) {
+                return back()->with('error', 'Dompet tidak ditemukan.');
+            }
+            
             if ($wallet->balance < $amount) {
                 return back()->with('error', "Saldo dompet {$wallet->name} tidak mencukupi (Rp " . number_format($wallet->balance, 0, ',', '.') . ").");
             }
@@ -162,7 +167,7 @@ class GoalController extends Controller
             return back()->with('error', 'Gagal memproses setoran: ' . $e->getMessage());
         }
 
-        $label = $isPhysical ? '🏺 Celengan' : '💰 Target';
+        $label = $isPhysical ? 'Celengan' : 'Target';
         return back()->with('success', "{$label} **{$goal->name}**: Rp " . number_format($amount, 0, ',', '.') . " berhasil dicatat!");
     }
 

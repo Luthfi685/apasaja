@@ -49,7 +49,8 @@ function ScanModal({ isOpen, onClose, onResult }) {
             onResult(json);
             onClose();
             toast.success('Struk berhasil dipindai!');
-        } catch {
+        } catch (error) {
+            console.error('Failed to scan receipt:', error);
             toast.error('Gagal memindai struk. Coba masukkan manual.');
         } finally {
             setScanning(false);
@@ -568,7 +569,9 @@ export default function SplitBillIndex() {
 
         // Always copy to clipboard as safe backup
         if (navigator.clipboard) {
-            navigator.clipboard.writeText(text).catch(() => {});
+            navigator.clipboard.writeText(text).catch(() => {
+                toast.error('Gagal menyalin ke clipboard');
+            });
         }
 
         const rawPhone = typeof targetPhone === 'string' ? targetPhone : '';

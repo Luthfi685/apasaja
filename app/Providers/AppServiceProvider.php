@@ -16,6 +16,8 @@ use App\Policies\TransactionPolicy;
 use App\Policies\WalletPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 
 class AppServiceProvider extends ServiceProvider
@@ -39,12 +41,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Schema::defaultStringLength(191);
         $this->registerPolicies();
         User::observe(UserObserver::class);
-        Vite::prefetch(concurrency: 3);
+        Vite::prefetch(concurrency: 1);
 
         if (app()->environment('production') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
 
         // Superadmin gate (optional for future use)

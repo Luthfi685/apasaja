@@ -20,6 +20,16 @@ class AutoLogin
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Skip auto-login during testing so auth tests work correctly
+        if (app()->runningUnitTests() || app()->environment('production')) {
+            return $next($request);
+        }
+
+        // Skip auto-login on auth routes (login, register, logout) to avoid redirect loops
+        if ($request->is('login', 'register', 'logout', 'forgot-password', 'reset-password/*')) {
+            return $next($request);
+        }
+
         $masterUser = User::first();
 
         if (!$masterUser) {

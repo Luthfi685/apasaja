@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block access to hidden files/folders (such as .env, .git)
+    RewriteRule (^|/)\.(?!well-known) - [F]
+
+    # Block direct web access to sensitive framework folders
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests|vendor)(/|$) - [F]
+
+    # Forward all traffic to the public directory
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

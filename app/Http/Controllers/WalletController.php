@@ -7,6 +7,7 @@ use App\Http\Requests\WalletRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,7 +56,9 @@ class WalletController extends Controller
             'balance' => 'required|numeric',
         ]);
 
-        $wallet->update(['balance' => $request->balance]);
+        DB::transaction(function () use ($wallet, $request) {
+            $wallet->lockForUpdate()->find($wallet->id)->update(['balance' => $request->balance]);
+        });
 
         return back()->with('success', "Saldo \"{$wallet->name}\" berhasil disetel ulang ke Rp " . number_format($request->balance, 0, ',', '.') . '.');
     }

@@ -17,7 +17,9 @@ class TransactionController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Auth::user()
+        $user = Auth::user();
+
+        $query = $user
             ->transactions()
             ->with(['wallet:id,name,color,currency', 'category:id,name,icon,color'])
             ->latest('date')
@@ -51,8 +53,8 @@ class TransactionController extends Controller
 
         return Inertia::render('Transactions/Index', [
             'transactions' => $transactions,
-            'wallets'      => Auth::user()->wallets()->select('id', 'name', 'currency')->get(),
-            'categories'   => Auth::user()->categories()->select('id', 'name', 'type', 'icon', 'color')->get(),
+            'wallets'      => $user->wallets()->select('id', 'name', 'currency')->get(),
+            'categories'   => $user->categories()->select('id', 'name', 'type', 'icon', 'color')->get(),
             'filters'      => array_merge(
                 ['date_from' => $dateFrom, 'date_to' => $dateTo],
                 $request->only(['type', 'wallet_id', 'category_id', 'search'])

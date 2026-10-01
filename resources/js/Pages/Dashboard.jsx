@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import {
     AreaChart, Area, PieChart, Pie, Cell, Tooltip,
@@ -374,9 +374,9 @@ export default function Dashboard({
                                 <h3 className="section-header">Target Impian & Tabungan</h3>
                                 <p className="section-subheader">Pantau progres pencapaian aset impian Anda</p>
                             </div>
-                            <a href="/goals" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
+                            <Link href="/goals" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
                                 Lihat semua impian <ChevronRight size={13} />
-                            </a>
+                            </Link>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {goals.map(g => (
@@ -408,9 +408,9 @@ export default function Dashboard({
                     <div>
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="section-header">Portofolio Dompet & Aset</h3>
-                            <a href="/wallets" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
+                            <Link href="/wallets" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
                                 Kelola dompet <ChevronRight size={13} />
-                            </a>
+                            </Link>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                             {wallets.map(w => <WalletCardItem key={w.id} wallet={w} />)}
@@ -424,9 +424,9 @@ export default function Dashboard({
                     <div className="glass-card p-6 bg-white border border-slate-200">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="section-header">Transaksi Terakhir</h3>
-                            <a href="/transactions" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
+                            <Link href="/transactions" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
                                 Semua riwayat <ChevronRight size={13} />
-                            </a>
+                            </Link>
                         </div>
                         <div className="divide-y divide-slate-100">
                             {recentTransactions?.length > 0 ? (
@@ -464,9 +464,9 @@ export default function Dashboard({
                     <div className="glass-card p-6 bg-white border border-slate-200">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="section-header">Realisasi Anggaran</h3>
-                            <a href="/budgets" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
+                            <Link href="/budgets" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-0.5">
                                 Atur target <ChevronRight size={13} />
-                            </a>
+                            </Link>
                         </div>
                         <div className="space-y-4">
                             {budgets?.length > 0 ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,7 +8,8 @@ import {
     Trophy, Scissors, MessageSquare
 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
-import FinancialCopilot from '@/Components/FinancialCopilot';
+
+const FinancialCopilot = lazy(() => import('@/Components/FinancialCopilot'));
 
 const navItems = [
     { href: '/',             label: 'Dashboard',     icon: LayoutDashboard },
@@ -49,7 +50,7 @@ function SidebarContent({ user, currentPath, onNavClick }) {
                         || (item.href !== '/' && currentPath.startsWith(item.href));
 
                     return (
-                        <Link key={item.href} href={item.href} onClick={onNavClick}>
+                        <Link key={item.href} href={item.href} prefetch="hover" onClick={onNavClick}>
                             <div className="relative">
                                 {isActive && (
                                     <motion.div
@@ -80,13 +81,34 @@ function SidebarContent({ user, currentPath, onNavClick }) {
                 })}
             </nav>
 
-            {/* Bottom Status Tag */}
-            <div className="p-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                <span className="flex items-center gap-1.5 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                    <span>Sistem Aktif</span>
-                </span>
-                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-semibold">v1.0</span>
+            {/* Account & Session */}
+            <div className="border-t border-slate-100 p-3">
+                <div className="mb-2 flex items-center gap-3 rounded-xl px-2 py-2">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+                        {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-bold text-slate-700">{user?.name ?? 'Pengguna'}</p>
+                        <p className="truncate text-[11px] text-slate-400">{user?.email ?? 'FinanceOS'}</p>
+                    </div>
+                </div>
+                <Link
+                    href={route('logout')}
+                    method="post"
+                    as="button"
+                    onClick={onNavClick}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
+                >
+                    <LogOut size={17} />
+                    Keluar dari akun
+                </Link>
+                <div className="mt-2 flex items-center justify-between px-2 text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1.5 font-medium">
+                        <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                        Sistem Aktif
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-500">v1.0</span>
+                </div>
             </div>
         </div>
     );
@@ -164,7 +186,7 @@ export default function AuthenticatedLayout({ children, header }) {
                                 <Menu size={20} />
                             </button>
 
-                            <Link href="/" className="flex items-center gap-2 lg:hidden">
+                            <Link href="/" prefetch="hover" className="flex items-center gap-2 lg:hidden">
                                 <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-xs">
                                     <TrendingUp size={16} className="text-emerald-400" />
                                 </div>
@@ -221,10 +243,14 @@ export default function AuthenticatedLayout({ children, header }) {
             </motion.button>
 
             {/* Slide-over Copilot */}
-            <FinancialCopilot
-                isOpen={copilotOpen}
-                onClose={() => setCopilotOpen(false)}
-            />
+            {copilotOpen && (
+                <Suspense fallback={null}>
+                    <FinancialCopilot
+                        isOpen={copilotOpen}
+                        onClose={() => setCopilotOpen(false)}
+                    />
+                </Suspense>
+            )}
 
             <Toaster
                 position="bottom-right"

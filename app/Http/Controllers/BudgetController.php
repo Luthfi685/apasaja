@@ -6,6 +6,7 @@ use App\Models\Budget;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,13 +20,34 @@ class BudgetController extends Controller
             ->with('category:id,name,icon,color,type')
             ->where('month', $now->month)
             ->where('year', $now->year)
-            ->get()
-            ->map(fn($b) => array_merge($b->toArray(), [
-                'spent_amount'    => $b->spent_amount,
-                'remaining'       => $b->remaining,
-                'percentage_used' => $b->percentage_used,
-                'is_over_budget'  => $b->is_over_budget,
-            ]));
+            ->get();
+
+        // Preload all spent amounts in single query to avoid N+1
+        $budgetIds = $budgets->pluck('id');
+        $categoryIds = $budgets->pluck('category_id');
+        
+        $spentAmounts = DB::table('transactions')
+            ->select('category_id', DB::raw('SUM(amount) as total'))
+            ->where('user_id', Auth::id())
+            ->where('type', 'expense')
+            ->whereMonth('date', $now->month)
+            ->whereYear('date', $now->year)
+            ->whereIn('category_id', $categoryIds)
+            ->groupBy('category_id')
+            ->pluck('total', 'category_id');
+
+        $budgets = $budgets->map(function($b) use ($spentAmounts) {
+            $spent = (float) ($spentAmounts[$b->category_id] ?? 0);
+            $remaining = max(0, $b->limit_amount - $spent);
+            $percentageUsed = $b->limit_amount > 0 ? min(100, ($spent / $b->limit_amount) * 100) : 0;
+            
+            return array_merge($b->toArray(), [
+                'spent_amount'    => $spent,
+                'remaining'       => $remaining,
+                'percentage_used' => $percentageUsed,
+                'is_over_budget'  => $spent > $b->limit_amount,
+            ]);
+        });
 
         $categories = Auth::user()->categories()
             ->where('type', 'expense')

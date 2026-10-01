@@ -47,10 +47,10 @@ class WhatsAppWebhookController extends Controller
         $wallets = $user->wallets()->get(['id', 'name', 'balance', 'type']);
 
         return \Inertia\Inertia::render('WhatsAppBot/Index', [
-            'botPhone'           => '6283176325931',
+            'botPhone'           => env('WHATSAPP_BOT_PHONE', '6283176325931'),
             'linkedPhone'        => $user->whatsapp_number ?: '',
             'isConfigured'       => !empty($token),
-            'webhookUrl'         => 'https://financeos-fh71.onrender.com/api/webhook/whatsapp',
+            'webhookUrl'         => env('WHATSAPP_WEBHOOK_URL', config('app.url') . '/api/webhook/whatsapp'),
             'recentTransactions' => $recentTransactions,
             'wallets'            => $wallets,
         ]);
@@ -124,9 +124,9 @@ class WhatsAppWebhookController extends Controller
                 $masterUser = User::first();
                 if ($masterUser) {
                     $masterUser->update(['whatsapp_number' => $cleanPhone]);
-                    $reply = "✅ *Nomor WhatsApp Berhasil Terhubung!*\n\n"
+                    $reply = "[SUKSES] *Nomor WhatsApp Berhasil Terhubung!*\n\n"
                            . "Halo *{$masterUser->name}*, nomor WhatsApp Anda (*+{$cleanPhone}*) telah otomatis ditautkan ke akun FinanceOS.\n\n"
-                           . "💡 *Mulai catat transaksi sekarang:*\n"
+                           . "[INFO] *Mulai catat transaksi sekarang:*\n"
                            . "• _kopi kenangan 25rb bca_\n"
                            . "• _makan siang 35000 tunai_\n"
                            . "• _gaji 5jt bca_\n"
