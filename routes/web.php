@@ -110,28 +110,58 @@ Route::get('/deploy-helper', function (\Illuminate\Http\Request $request) {
     $action = $request->query('action', 'status');
     $output = [];
 
-    switch ($action) {
-        case 'migrate':
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-            $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
-            break;
-        case 'storage-link':
-            \Illuminate\Support\Facades\Artisan::call('storage:link');
-            $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
-            break;
-        case 'clear-cache':
-            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-            $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
-            break;
-        case 'status':
-        default:
-            $output[] = 'Deploy helper active. Actions: ?action=migrate, ?action=storage-link, ?action=clear-cache';
-            break;
-    }
+    try {
+        switch ($action) {
+            case 'migrate':
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+                $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+                break;
+            case 'storage-link':
+                if (function_exists('symlink')) {
+                    $target = storage_path('app/public');
+                    $link = public_path('storage');
+                    if (!file_exists($link)) {
+                        @symlink($target, $link);
+                    }
+                    $output[] = 'Storage link processed via symlink().';
+                } else {
+                    $output[] = 'PHP symlink disabled on server. Storage fallback route is active.';
+                }
+                break;
+            case 'clear-cache':
+                \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+                $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+                break;
+            case 'test-db':
+                \Illuminate\Support\Facades\DB::connection()->getPdo();
+                $output[] = 'Database connection OK: ' . \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
+                break;
+            case 'status':
+            default:
+                $output[] = 'Deploy helper active. Actions: ?action=test-db, ?action=migrate, ?action=storage-link, ?action=clear-cache';
+                break;
+        }
 
-    return response()->json([
-        'status'  => true,
-        'action'  => $action,
-        'output'  => $output,
-    ]);
+        return response()->json([
+            'status'  => true,
+            'action'  => $action,
+            'output'  => $output,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status'  => false,
+            'action'  => $action,
+            'error'   => $e->getMessage(),
+            'file'    => $e->getFile() . ':' . $e->getLine(),
+        ], 500);
+    }
 });
+
+// Fallback direct storage route for shared hosting without symlink support
+Route::get('/storage/{path}', function (string $path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    return response()->file($filePath);
+})->where('path', '.*');
