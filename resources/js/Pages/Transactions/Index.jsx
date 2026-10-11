@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Search, ArrowUpRight, ArrowDownRight,
@@ -755,6 +755,49 @@ export default function TransactionsIndex({ transactions, wallets = [], categori
                         })
                     ) : (
                         <div className="text-center py-16 text-slate-400 text-sm">Belum ada transaksi ditemukan</div>
+                    )}
+
+                    {/* Pagination */}
+                    {transactions?.links && transactions.links.length > 3 && (
+                        <div className="px-5 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50 rounded-b-2xl">
+                            <p className="text-xs text-slate-500 font-medium">
+                                Menampilkan <span className="font-semibold text-slate-800">{transactions.from || 0}</span> – <span className="font-semibold text-slate-800">{transactions.to || 0}</span> dari <span className="font-semibold text-slate-800">{transactions.total}</span> transaksi
+                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                                {transactions.links.map((link, idx) => {
+                                    const isPrev = link.label.includes('Previous');
+                                    const isNext = link.label.includes('Next');
+                                    const label = isPrev ? <ChevronLeft size={15} /> : isNext ? <ChevronRight size={15} /> : link.label;
+
+                                    if (!link.url) {
+                                        return (
+                                            <span
+                                                key={idx}
+                                                className="min-w-[34px] h-[34px] px-2.5 flex items-center justify-center rounded-xl text-xs font-semibold text-slate-300 bg-slate-100/60 border border-slate-200/50 cursor-not-allowed select-none"
+                                            >
+                                                {label}
+                                            </span>
+                                        );
+                                    }
+
+                                    return (
+                                        <Link
+                                            key={idx}
+                                            href={link.url}
+                                            preserveScroll
+                                            preserveState
+                                            className={`min-w-[34px] h-[34px] px-2.5 flex items-center justify-center rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                                link.active
+                                                    ? 'bg-slate-900 text-white shadow-sm'
+                                                    : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
+                                            }`}
+                                        >
+                                            {label}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
