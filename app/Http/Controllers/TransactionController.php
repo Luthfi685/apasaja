@@ -49,6 +49,16 @@ class TransactionController extends Controller
             });
         }
 
+        // Calculate total income & expense across all matching records (not just current page)
+        $summary = (clone $query)
+            ->without(['wallet', 'category'])
+            ->reorder()
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
+                COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expense
+            ")
+            ->first();
+
         $transactions = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Transactions/Index', [
@@ -59,6 +69,10 @@ class TransactionController extends Controller
                 ['date_from' => $dateFrom, 'date_to' => $dateTo],
                 $request->only(['type', 'wallet_id', 'category_id', 'search'])
             ),
+            'summary'      => [
+                'total_income'  => (float) ($summary->total_income ?? 0),
+                'total_expense' => (float) ($summary->total_expense ?? 0),
+            ],
         ]);
     }
 

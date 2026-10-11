@@ -432,7 +432,7 @@ function ResetTransactionsModal({ isOpen, onClose, wallets, currentMonth, curren
     );
 }
 
-export default function TransactionsIndex({ transactions, wallets = [], categories = [], filters = {} }) {
+export default function TransactionsIndex({ transactions, wallets = [], categories = [], filters = {}, summary = {} }) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [modalOpen, setModalOpen] = useState(false);
     const [editingTx, setEditingTx] = useState(null);
@@ -600,14 +600,14 @@ export default function TransactionsIndex({ transactions, wallets = [], categori
                             <ArrowUpRight size={13} className="text-emerald-600" />
                             <span className="text-[11px] font-semibold text-emerald-700">Masuk: </span>
                             <span className="text-[11px] font-bold font-mono text-emerald-700">
-                                {formatCurrency(transactions?.data?.reduce((s, t) => t.type === 'income' ? s + parseFloat(t.amount) : s, 0) ?? 0)}
+                                {formatCurrency(summary?.total_income ?? (transactions?.data?.reduce((s, t) => t.type === 'income' ? s + parseFloat(t.amount) : s, 0) ?? 0))}
                             </span>
                         </div>
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-100">
                             <ArrowDownRight size={13} className="text-rose-600" />
                             <span className="text-[11px] font-semibold text-rose-700">Keluar: </span>
                             <span className="text-[11px] font-bold font-mono text-rose-700">
-                                {formatCurrency(transactions?.data?.reduce((s, t) => t.type === 'expense' ? s + parseFloat(t.amount) : s, 0) ?? 0)}
+                                {formatCurrency(summary?.total_expense ?? (transactions?.data?.reduce((s, t) => t.type === 'expense' ? s + parseFloat(t.amount) : s, 0) ?? 0))}
                             </span>
                         </div>
                         <span className="text-[11px] text-slate-400 font-medium">
